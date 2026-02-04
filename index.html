@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Font Viewer - LINE Seed JP</title>
+    <title>LINE Seed JP Font Viewer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@100;400;700;800&display=swap" rel="stylesheet">
@@ -11,111 +11,115 @@
     <style>
         :root {
             --line-green: #06C755;
-            --bg-color: #f0f2f5;
+            --bg-gray: #f8f9fa;
+            --text-main: #333;
         }
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+        body {
+            margin: 0; padding: 0;
             font-family: 'LINE Seed JP', sans-serif;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--bg-color);
+            display: flex; flex-direction: column;
+            height: 100vh; background-color: var(--bg-gray);
             overflow: hidden;
         }
 
         header {
-            padding: 12px 16px;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 16px; background: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             z-index: 100;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        }
+
+        .header-container {
+            max-width: 1000px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 12px;
         }
 
         @media (min-width: 768px) {
-            header { flex-direction: row; align-items: center; }
+            .header-container { flex-direction: row; align-items: center; }
         }
 
-        .controls { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
-        .input-item { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; }
-        label { font-size: 13px; font-weight: 700; color: #333; white-space: nowrap; }
+        .input-group { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+        .select-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        
+        label { font-size: 11px; font-weight: 800; color: var(--line-green); text-transform: uppercase; }
 
         input[type="url"], select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            background-color: #fff;
+            padding: 12px; border: 2px solid #eee; border-radius: 10px;
+            font-size: 14px; font-family: inherit; transition: border-color 0.2s;
+        }
+
+        input[type="url"]:focus, select:focus {
+            outline: none; border-color: var(--line-green);
         }
 
         button {
-            padding: 12px 24px;
-            background-color: var(--line-green);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 14px;
+            padding: 12px 24px; background-color: var(--line-green);
+            color: white; border: none; border-radius: 10px;
+            cursor: pointer; font-weight: 700; font-size: 15px;
+            margin-top: 15px; transition: transform 0.1s;
         }
 
-        /* プレビューエリアの改善 */
+        @media (min-width: 768px) { button { margin-top: 0; align-self: flex-end; } }
+
+        button:active { transform: scale(0.96); }
+
         #viewer-container {
-            flex: 1;
-            width: 100%;
-            position: relative;
-            background: #fff;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
+            flex: 1; width: 100%; position: relative;
+            background: #fff; display: flex; justify-content: center;
         }
 
-        #web-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: none;
+        #web-frame { width: 100%; height: 100%; border: none; display: none; }
+
+        .placeholder {
+            text-align: center; color: #bbb; align-self: center;
+            padding: 40px; max-width: 400px;
         }
 
-        /* ...中略（前回のCSSを継承）... */
-        .placeholder-text { text-align: center; color: #888; padding: 40px 20px; position: absolute; top: 20%; }
-        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--line-green); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        .loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); display: none;
+            flex-direction: column; justify-content: center; align-items: center; z-index: 10;
+        }
+
+        .spinner {
+            width: 30px; height: 30px; border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--line-green); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 12px;
+        }
+
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="controls">
-        <div class="input-item">
-            <label>URL</label>
-            <input type="url" id="url-input" placeholder="https://example.com" value="">
+    <div class="header-container">
+        <div class="input-group">
+            <label>サイトのURL</label>
+            <input type="url" id="url-input" placeholder="example.com" value="">
         </div>
-        <div class="input-item" style="flex: 0 1 auto; min-width: 120px;">
-            <label>太さ</label>
+        <div class="select-group">
+            <label>文字の太さ</label>
             <select id="weight-select">
-                <option value="100">Thin</option>
-                <option value="400" selected>Regular</option>
-                <option value="700">Bold</option>
-                <option value="800">Black</option>
+                <option value="100">極細 (Thin)</option>
+                <option value="400" selected>標準 (Regular)</option>
+                <option value="700">太め (Bold)</option>
+                <option value="800">超極太 (Black)</option>
             </select>
         </div>
+        <button onclick="loadWebsite()">フォントを適用</button>
     </div>
-    <button onclick="loadWebsite()">表示を更新</button>
 </header>
 
 <div id="viewer-container">
-    <div id="placeholder" class="placeholder-text">
-        <h3>LINE Seed JP プレビュー</h3>
-        <p>URLを入力すると、そのサイトが<br><b>LINE Seed JP</b>で表示されます。</p>
+    <div id="placeholder" class="placeholder">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:15px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        <p>URLを入力して、お気に入りのサイトをLINE Seedフォントで見てみましょう</p>
     </div>
-    <div id="loading" class="loading-overlay"><div class="spinner"></div><div>変換中...</div></div>
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <div style="font-weight:700; color:var(--line-green)">読み込み中...</div>
+    </div>
     <iframe id="web-frame"></iframe>
 </div>
 
@@ -145,38 +149,30 @@
             let html = data.contents;
             const baseUrl = new URL(targetUrl).origin;
 
-            // 改善ポイント: 既存のviewportタグを削除してから、強力なものを注入
+            // レスポンシブ対応とフォント適用
             html = html.replace(/<meta[^>]*name=["']viewport["'][^>]*>/gi, '');
 
             const injectContent = `
                 <base href="${baseUrl}/">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-                <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@${weight}&display=swap" rel="stylesheet">
                 <style>
-                    html, body { overflow-x: hidden !important; width: 100vw !important; }
                     * {
                         font-family: 'LINE Seed JP', sans-serif !important;
                         font-weight: ${weight} !important;
-                        max-width: 100% !important;
-                        box-sizing: border-box !important;
                     }
+                    html, body { overflow-x: hidden !important; width: 100vw !important; }
+                    img { max-width: 100% !important; height: auto !important; }
                 </style>
             `;
 
-            // <head>の直後に注入
-            if (html.includes('<head>')) {
-                html = html.replace('<head>', `<head>${injectContent}`);
-            } else {
-                html = injectContent + html;
-            }
-
-            // iframeを一度空にしてから再構築
+            html = html.replace(/<head>/i, `<head>${injectContent}`);
             frame.srcdoc = html;
 
         } catch (error) {
-            alert('読み込みに失敗しました。');
+            alert('サイトを読み込めませんでした。セキュリティ制限の厳しいサイトは表示できない場合があります。');
             placeholder.style.display = 'block';
+            frame.style.display = 'none';
         } finally {
             loading.style.display = 'none';
         }
