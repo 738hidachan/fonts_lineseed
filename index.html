@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LINE Seed JP - Final Responsive</title>
+    <title>LINE Seed JP - True Responsive</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@100;400;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --line-green: #06C755; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; }
 
         body, html {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
@@ -17,21 +17,20 @@
             background-color: #000; overflow: hidden; position: fixed;
         }
 
-        /* --- 自動開閉パネル --- */
+        /* --- 自動格納パネル --- */
         header {
             position: fixed; top: 0; left: 0; width: 100%;
             background: #fff; padding: env(safe-area-inset-top) 20px 24px 20px;
             z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
         }
         .panel-hidden { transform: translateY(-100%); }
 
         .form-ui { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
         label { font-size: 11px; font-weight: 800; color: var(--line-green); }
-        input, select { width: 100%; padding: 14px; border: 2px solid #f0f0f0; border-radius: 12px; font-size: 16px; background: #fafafa; }
+        input, select { width: 100%; padding: 14px; border: 2px solid #f0f0f0; border-radius: 12px; font-size: 16px; background: #fafafa; -webkit-appearance: none; }
         .apply-btn { padding: 16px; background: var(--line-green); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 16px; }
 
-        /* --- 復帰用ボタン --- */
         #gear-btn {
             position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px;
             background: var(--line-green); border-radius: 50%; color: white;
@@ -39,17 +38,15 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.4); font-size: 24px;
         }
 
-        /* --- 【根本解決】全デバイス対応の最強ビューワー --- */
+        /* --- ビューワー --- */
         #view-area {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #fff; overflow: hidden; /* iframeの暴走を外側で止める */
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; overflow: hidden;
         }
 
         #site-frame {
             width: 100% !important; height: 100% !important;
             border: none; display: none;
-            /* iOS Safariのiframe膨張を殺すための指定 */
-            min-width: 100% !important; width: 1px !important; *width: 100% !important;
         }
 
         .loader {
@@ -75,8 +72,8 @@
 <button id="gear-btn" onclick="openPanel()">⚙</button>
 
 <div id="view-area">
-    <div id="msg" style="text-align:center; padding-top:50vh; color:#ccc;">URLを入力してください</div>
-    <iframe id="site-frame" scrolling="yes"></iframe>
+    <div id="msg" style="text-align:center; padding-top:50vh; color:#ccc; font-weight: bold;">URLを入力してください</div>
+    <iframe id="site-frame"></iframe>
 </div>
 
 <div id="loader" class="loader"><div class="spinner"></div><p style="margin-top:10px; font-weight:800;">変換中...</p></div>
@@ -103,36 +100,50 @@
             const baseUrl = new URL(target).origin;
             let html = data.contents;
 
-            // 1. サイトのviewport設定を完全に破壊して再構築
+            // --- 根本解決のインジェクション ---
+            
+            // 1. サイトの既存メタタグを全削除
             html = html.replace(/<meta[^>]*viewport[^>]*>/gi, '');
             
-            const headTag = `
+            const headInjection = `
                 <base href="${baseUrl}/">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
                 <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@${weight}&display=swap" rel="stylesheet">
                 <style>
+                    /* 強力なリセット */
                     * { font-family: 'LINE Seed JP', sans-serif !important; font-weight: ${weight} !important; }
                     html, body { 
-                        width: 100% !important; 
-                        max-width: 100vw !important; 
+                        width: 100vw !important; 
+                        margin: 0 !important; padding: 0 !important;
                         overflow-x: hidden !important; 
-                        margin: 0 !important; 
-                        padding: 0 !important;
-                        -webkit-text-size-adjust: 100%;
+                        -webkit-text-size-adjust: 100% !important;
                     }
                     img { max-width: 100% !important; height: auto !important; }
-                    /* 既存の絶対配置要素が突き抜けるのを防ぐ */
-                    div, section, article { max-width: 100vw !important; box-sizing: border-box !important; }
+                    /* iOSバグ対策：すべての要素を画面幅に収める */
+                    div, section, header, footer, table { max-width: 100% !important; box-sizing: border-box !important; }
                 </style>
             `;
 
-            html = html.replace(/<head>/i, '<head>' + headTag);
+            html = html.replace(/<head>/i, '<head>' + headInjection);
             
+            // 2. iframeに書き込む
             document.getElementById('msg').style.display = 'none';
             frame.style.display = 'block';
             frame.srcdoc = html;
 
-            // 2. パネルを自動で閉じ、復帰ボタンを出す
+            // 3. 【最重要】iPhone/Android向け：読み込み後にviewportを外側から強制注入する
+            frame.onload = () => {
+                try {
+                    const doc = frame.contentDocument || frame.contentWindow.document;
+                    const meta = doc.createElement('meta');
+                    meta.name = "viewport";
+                    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+                    doc.getElementsByTagName('head')[0].appendChild(meta);
+                } catch (e) {
+                    console.log("Cross-origin restriction handled by srcdoc");
+                }
+            };
+
+            // 4. パネルの自動格納
             setTimeout(() => {
                 document.getElementById('panel').classList.add('panel-hidden');
                 document.getElementById('gear-btn').style.display = 'flex';
@@ -140,7 +151,7 @@
             }, 800);
 
         } catch (e) {
-            alert('取得に失敗しました');
+            alert('取得失敗');
             loader.style.display = 'none';
         }
     }
