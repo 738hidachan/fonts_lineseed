@@ -12,72 +12,78 @@
         :root {
             --line-green: #06C755;
             --bg-gray: #f8f9fa;
-            --text-main: #333;
         }
 
-        body {
-            margin: 0; padding: 0;
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: 'LINE Seed JP', sans-serif;
+            background-color: #000; overflow: hidden;
             display: flex; flex-direction: column;
-            height: 100vh; background-color: var(--bg-gray);
-            overflow: hidden;
         }
 
+        /* 設定パネル（ヘッダー） */
         header {
-            padding: 16px; background: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            z-index: 100;
+            position: fixed; top: 0; left: 0; right: 0;
+            padding: 20px; background: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 適用後に隠すためのクラス */
+        header.is-hidden {
+            transform: translateY(-100%);
         }
 
         .header-container {
-            max-width: 1000px; margin: 0 auto;
-            display: flex; flex-direction: column; gap: 12px;
+            max-width: 600px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 15px;
         }
 
-        @media (min-width: 768px) {
-            .header-container { flex-direction: row; align-items: center; }
-        }
-
-        .input-group { flex: 2; display: flex; flex-direction: column; gap: 4px; }
-        .select-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-        
-        label { font-size: 11px; font-weight: 800; color: var(--line-green); text-transform: uppercase; }
+        .input-group, .select-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 12px; font-weight: 800; color: var(--line-green); }
 
         input[type="url"], select {
-            padding: 12px; border: 2px solid #eee; border-radius: 10px;
-            font-size: 14px; font-family: inherit; transition: border-color 0.2s;
+            padding: 12px; border: 2px solid #eee; border-radius: 12px;
+            font-size: 16px; /* スマホでズームされないサイズ */
+            font-family: inherit;
         }
 
-        input[type="url"]:focus, select:focus {
-            outline: none; border-color: var(--line-green);
+        button.apply-btn {
+            padding: 14px; background-color: var(--line-green);
+            color: white; border: none; border-radius: 12px;
+            cursor: pointer; font-weight: 700; font-size: 16px;
         }
 
-        button {
-            padding: 12px 24px; background-color: var(--line-green);
-            color: white; border: none; border-radius: 10px;
-            cursor: pointer; font-weight: 700; font-size: 15px;
-            margin-top: 15px; transition: transform 0.1s;
+        /* パネルを開き直すためのフローティングボタン */
+        #open-menu {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 50px; height: 50px; background: var(--line-green);
+            color: white; border-radius: 50%; border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: none; z-index: 999; cursor: pointer;
+            font-size: 20px; font-weight: bold;
         }
-
-        @media (min-width: 768px) { button { margin-top: 0; align-self: flex-end; } }
-
-        button:active { transform: scale(0.96); }
 
         #viewer-container {
-            flex: 1; width: 100%; position: relative;
-            background: #fff; display: flex; justify-content: center;
+            flex: 1; width: 100%; height: 100%; position: relative;
+            background: #fff;
         }
 
-        #web-frame { width: 100%; height: 100%; border: none; display: none; }
+        /* レスポンシブ表示を強制するためのiframeスタイル */
+        #web-frame {
+            width: 100%; height: 100%; border: none;
+            display: none;
+        }
 
         .placeholder {
-            text-align: center; color: #bbb; align-self: center;
-            padding: 40px; max-width: 400px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; color: #888; width: 80%;
         }
 
         .loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9); display: none;
+            background: rgba(255,255,255,1); display: none;
             flex-direction: column; justify-content: center; align-items: center; z-index: 10;
         }
 
@@ -92,7 +98,7 @@
 </head>
 <body>
 
-<header>
+<header id="control-panel">
     <div class="header-container">
         <div class="input-group">
             <label>サイトのURL</label>
@@ -107,36 +113,42 @@
                 <option value="800">超極太 (Black)</option>
             </select>
         </div>
-        <button onclick="loadWebsite()">フォントを適用</button>
+        <button class="apply-btn" onclick="loadWebsite()">フォントを適用してサイトを見る</button>
     </div>
 </header>
 
+<button id="open-menu" onclick="togglePanel()">⚙</button>
+
 <div id="viewer-container">
     <div id="placeholder" class="placeholder">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:15px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-        <p>URLを入力して、お気に入りのサイトをLINE Seedフォントで見てみましょう</p>
+        <p>URLを入力してください</p>
     </div>
     <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
-        <div style="font-weight:700; color:var(--line-green)">読み込み中...</div>
+        <div style="font-weight:700; color:var(--line-green)">フォント変換中...</div>
     </div>
-    <iframe id="web-frame"></iframe>
+    <iframe id="web-frame" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
 </div>
 
 <script>
+    function togglePanel() {
+        const panel = document.getElementById('control-panel');
+        panel.classList.toggle('is-hidden');
+    }
+
     async function loadWebsite() {
         const urlInput = document.getElementById('url-input').value.trim();
         const weight = document.getElementById('weight-select').value;
         const frame = document.getElementById('web-frame');
         const loading = document.getElementById('loading');
         const placeholder = document.getElementById('placeholder');
+        const panel = document.getElementById('control-panel');
+        const openBtn = document.getElementById('open-menu');
 
         if (!urlInput) return alert('URLを入力してください');
 
         let targetUrl = urlInput.startsWith('http') ? urlInput : 'https://' + urlInput;
 
-        placeholder.style.display = 'none';
-        frame.style.display = 'block';
         loading.style.display = 'flex';
 
         try {
@@ -149,30 +161,48 @@
             let html = data.contents;
             const baseUrl = new URL(targetUrl).origin;
 
-            // レスポンシブ対応とフォント適用
+            // --- レスポンシブ対応のコア修正 ---
+            // 既存のViewportを完全に削除し、強制的にデバイス幅へ固定する
             html = html.replace(/<meta[^>]*name=["']viewport["'][^>]*>/gi, '');
-
+            
             const injectContent = `
                 <base href="${baseUrl}/">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
                 <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@${weight}&display=swap" rel="stylesheet">
                 <style>
+                    /* 全ての要素にフォントと太さを強制 */
                     * {
                         font-family: 'LINE Seed JP', sans-serif !important;
                         font-weight: ${weight} !important;
                     }
-                    html, body { overflow-x: hidden !important; width: 100vw !important; }
-                    img { max-width: 100% !important; height: auto !important; }
+                    /* 横幅が突き抜けないように強制 */
+                    html, body { 
+                        width: 100% !important; 
+                        margin: 0 !important; 
+                        padding: 0 !important; 
+                        overflow-x: hidden !important;
+                        -webkit-text-size-adjust: 100%;
+                    }
+                    img, video, canvas { max-width: 100% !important; height: auto !important; }
                 </style>
             `;
 
-            html = html.replace(/<head>/i, `<head>${injectContent}`);
+            if (html.includes('<head>')) {
+                html = html.replace('<head>', `<head>${injectContent}`);
+            } else {
+                html = injectContent + html;
+            }
+
+            placeholder.style.display = 'none';
+            frame.style.display = 'block';
             frame.srcdoc = html;
 
+            // 適用後にパネルを隠し、再開ボタンを表示
+            panel.classList.add('is-hidden');
+            openBtn.style.display = 'block';
+
         } catch (error) {
-            alert('サイトを読み込めませんでした。セキュリティ制限の厳しいサイトは表示できない場合があります。');
-            placeholder.style.display = 'block';
-            frame.style.display = 'none';
+            alert('表示に失敗しました。サイトの制限（CSP）により表示できない可能性があります。');
         } finally {
             loading.style.display = 'none';
         }
