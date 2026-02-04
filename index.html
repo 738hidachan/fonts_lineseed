@@ -2,188 +2,165 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LINE Seed JP - Final Responsive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>LINE Seed JP Font Viewer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@100;400;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root { --line-green: #06C755; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; }
 
-        body, html {
+        /* 全デバイス共通の土台 */
+        html, body {
             margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: 'LINE Seed JP', sans-serif;
-            background-color: #000; overflow: hidden;
-            position: fixed; /* iOSのバウンス防止 */
+            background-color: #f0f0f0; overflow: hidden;
         }
 
-        /* --- 設定パネル --- */
-        #config-panel {
+        /* 設定パネル：PC・スマホ両対応 */
+        header {
             position: fixed; top: 0; left: 0; width: 100%;
-            background: #fff; padding: env(safe-area-inset-top) 20px 24px 20px;
-            z-index: 2000;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            background: #fff; padding: 20px; z-index: 2000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
         .panel-closed { transform: translateY(-100%); }
 
-        .form-content { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-        label { font-size: 11px; font-weight: 800; color: var(--line-green); }
-
-        input[type="url"], select {
-            width: 100%; padding: 14px; border: 2px solid #f0f0f0; border-radius: 12px;
-            font-size: 16px; font-family: inherit; background: #fafafa;
-            -webkit-appearance: none; appearance: none;
+        .form-container {
+            max-width: 600px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr; gap: 12px;
+        }
+        
+        @media (min-width: 768px) {
+            .form-container { grid-template-columns: 1fr 150px 120px; align-items: end; }
         }
 
-        .btn-apply {
-            padding: 16px; background: var(--line-green); color: white;
-            border: none; border-radius: 12px; font-weight: 800; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(6,199,85,0.3);
+        label { font-size: 11px; font-weight: 800; color: var(--line-green); margin-bottom: 4px; display: block; }
+        input, select, button { 
+            width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #eee; 
+            font-size: 16px; font-family: inherit;
         }
+        
+        button {
+            background: var(--line-green); color: #fff; border: none; font-weight: 800; cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.8; }
 
+        /* 再設定用ボタン */
         #btn-reopen {
-            position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px;
-            background: var(--line-green); border-radius: 50%; color: white;
-            border: none; z-index: 1000; display: none; cursor: pointer;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3); font-size: 24px;
-            justify-content: center; align-items: center;
+            position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+            background: var(--line-green); border-radius: 50%; border: none;
+            color: white; font-size: 24px; z-index: 1000; cursor: pointer;
+            display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
-        /* --- 【最重要】iOS Safari レスポンシブ修正 --- */
-        #iframe-wrapper {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            width: 100%; height: 100%;
-            /* iOSでiframeを強制的にスクロールさせるための設定 */
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; 
-            background: #fff;
+        /* ビューワー：ここがレスポンシブの肝 */
+        #viewer {
+            width: 100%; height: 100%; position: relative;
+            display: flex; justify-content: center; align-items: center;
         }
 
-        #site-frame {
-            /* iOSの膨張バグを殺すための3点セット */
-            width: 1px;
-            min-width: 100%;
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: none;
+        iframe {
+            width: 100vw; height: 100vh; border: none;
+            background: #fff; display: none;
         }
 
         .loader {
-            position: fixed; inset: 0; background: #fff;
-            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 3000;
+            position: fixed; inset: 0; background: #fff; z-index: 3000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
         }
-        .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: var(--line-green); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--line-green); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<header id="config-panel">
-    <div class="form-content">
-        <div class="input-group">
-            <label>サイトのURL</label>
-            <input type="url" id="target-url" placeholder="example.com" inputmode="url">
+<header id="panel">
+    <div class="form-container">
+        <div>
+            <label>URL</label>
+            <input type="url" id="url" placeholder="example.com" inputmode="url">
         </div>
-        <div class="input-group">
-            <label>文字の太さ</label>
-            <select id="font-weight">
-                <option value="100">極細 (Thin)</option>
-                <option value="400" selected>標準 (Regular)</option>
-                <option value="700">太め (Bold)</option>
-                <option value="800">超極太 (Black)</option>
+        <div>
+            <label>太さ</label>
+            <select id="weight">
+                <option value="100">極細</option>
+                <option value="400" selected>標準</option>
+                <option value="700">太め</option>
+                <option value="800">超太</option>
             </select>
         </div>
-        <button class="btn-apply" onclick="applyAndLaunch()">サイトを表示</button>
+        <button onclick="launch()">適用</button>
     </div>
 </header>
 
 <button id="btn-reopen" onclick="togglePanel()">⚙</button>
 
-<div id="iframe-wrapper">
-    <iframe id="site-frame"></iframe>
-    <div id="welcome-msg" style="padding: 50vh 20px 0; text-align:center; color:#ccc; font-weight:700;">
-        URLを入力してください
-    </div>
+<div id="viewer">
+    <div id="msg">URLを入力してください</div>
+    <iframe id="frame"></iframe>
 </div>
 
-<div id="loader" class="loader"><div class="spinner"></div><p style="font-size:12px; margin-top:10px; font-weight:700;">適用中...</p></div>
+<div id="loader" class="loader"><div class="spinner"></div><p>最適化中...</p></div>
 
 <script>
-    const panel = document.getElementById('config-panel');
+    const panel = document.getElementById('panel');
+    const frame = document.getElementById('frame');
     const openBtn = document.getElementById('btn-reopen');
 
     function togglePanel() {
-        panel.classList.remove('panel-closed');
-        openBtn.style.display = 'none';
+        panel.classList.toggle('panel-closed');
     }
 
-    async function applyAndLaunch() {
-        const urlValue = document.getElementById('target-url').value.trim();
-        const weight = document.getElementById('font-weight').value;
-        const loader = document.getElementById('loader');
-        const frame = document.getElementById('site-frame');
-        
-        if (!urlValue) return alert('URLを入力してください');
-        const fullUrl = urlValue.startsWith('http') ? urlValue : 'https://' + urlValue;
-        loader.style.display = 'flex';
+    async function launch() {
+        const urlInput = document.getElementById('url').value.trim();
+        const weight = document.getElementById('weight').value;
+        if (!urlInput) return;
+
+        document.getElementById('loader').style.display = 'flex';
+        const targetUrl = urlInput.startsWith('http') ? urlInput : 'https://' + urlInput;
 
         try {
-            const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(fullUrl)}`;
-            const response = await fetch(proxy);
-            const data = await response.json();
-            
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const res = await fetch(proxyUrl);
+            const data = await res.json();
             let html = data.contents;
-            const baseUrl = new URL(fullUrl).origin;
+            const baseUrl = new URL(targetUrl).origin;
 
-            // 1. 既存のviewportタグを完全に除去
-            html = html.replace(/<meta[^>]*name=["']viewport["'][^>]*>/gi, '');
-            
-            // 2. iOS Safariが「これはモバイルだ」と100%確信するメタタグとCSSを注入
+            // 1. 既存のレスポンシブ設定を完全にリセット
+            html = html.replace(/<meta[^>]*viewport[^>]*>/gi, '');
+
+            // 2. どのデバイスでも「現在表示している幅」をサイトに伝える命令を注入
             const injection = `
                 <base href="${baseUrl}/">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
                 <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@${weight}&display=swap" rel="stylesheet">
                 <style>
-                    /* フォントの強制 */
-                    * {
-                        font-family: 'LINE Seed JP', sans-serif !important;
-                        font-weight: ${weight} !important;
-                    }
-                    /* iOSバグを封じ込めるCSS */
-                    html, body {
-                        width: 100vw !important;
-                        overflow-x: hidden !important;
-                        position: relative !important;
-                        -webkit-text-size-adjust: 100% !important;
-                    }
+                    * { font-family: 'LINE Seed JP', sans-serif !important; font-weight: ${weight} !important; }
+                    html, body { overflow-x: hidden !important; width: 100% !important; margin: 0 !important; }
                     img { max-width: 100% !important; height: auto !important; }
                 </style>
             `;
 
-            if (html.toLowerCase().includes('<head>')) {
-                html = html.replace(/<head>/i, '<head>' + injection);
-            } else {
-                html = injection + html;
-            }
-
-            document.getElementById('welcome-msg').style.display = 'none';
-            frame.style.display = 'block';
+            // 3. headの直後に最優先で流し込む
+            html = html.replace(/<head>/i, `<head>${injection}`);
+            
             frame.srcdoc = html;
+            frame.style.display = 'block';
+            document.getElementById('msg').style.display = 'none';
 
-            setTimeout(() => {
-                panel.classList.add('panel-closed');
-                openBtn.style.display = 'flex';
-                loader.style.display = 'none';
-            }, 800);
+            // 4. パネルを閉じ、再開ボタンを表示
+            panel.classList.add('panel-closed');
+            openBtn.style.display = 'block';
 
         } catch (e) {
-            alert('取得失敗');
-            loader.style.display = 'none';
+            alert('取得に失敗しました。URLを確認してください。');
+        } finally {
+            document.getElementById('loader').style.display = 'none';
         }
     }
 </script>
