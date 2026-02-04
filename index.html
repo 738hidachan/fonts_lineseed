@@ -2,67 +2,82 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LINE Seed JP Mobile Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LINE Seed JP Universal Viewer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@100;400;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root { --line-green: #06C755; }
-        * { box-sizing: border-box; }
+        
+        /* 共通設定 */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body, html {
-            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: 'LINE Seed JP', sans-serif;
             background-color: #000; overflow: hidden;
+            position: fixed; /* iOS/Androidでのバウンス抑制 */
         }
 
-        /* --- 自動で閉じる設定パネル --- */
+        /* --- 自動格納パネル --- */
         #config-panel {
             position: fixed; top: 0; left: 0; width: 100%;
-            background: #fff; padding: 20px; z-index: 2000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            background: #fff; padding: env(safe-area-inset-top) 20px 24px 20px;
+            z-index: 2000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            will-change: transform;
         }
 
-        /* 出力後にこのクラスが付与される */
         .panel-closed { transform: translateY(-100%); }
 
-        .form-content { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+        .form-content { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
         
+        label { font-size: 11px; font-weight: 800; color: var(--line-green); text-transform: uppercase; }
+
         input[type="url"], select {
-            width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px;
-            font-size: 16px; font-family: inherit;
+            width: 100%; padding: 14px; border: 2px solid #f0f0f0; border-radius: 12px;
+            font-size: 16px; font-family: inherit; background: #fafafa;
+            -webkit-appearance: none; appearance: none;
         }
 
         .btn-apply {
             padding: 16px; background: var(--line-green); color: white;
             border: none; border-radius: 12px; font-weight: 800; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(6,199,85,0.3); font-size: 16px;
         }
 
-        /* --- 復帰用ボタン --- */
+        /* --- 復帰用フローティングボタン --- */
         #btn-reopen {
-            position: fixed; top: 10px; right: 10px; width: 44px; height: 44px;
-            background: rgba(0,0,0,0.5); border-radius: 50%; color: white;
+            position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px;
+            background: var(--line-green); border-radius: 50%; color: white;
             border: none; z-index: 1000; display: none; cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- レスポンシブ表示の核心：iframeコンテナ --- */
+        /* --- 究極の全デバイス対応コンテナ --- */
         #iframe-wrapper {
-            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-            background: #fff; overflow: hidden;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            overflow: auto; 
+            -webkit-overflow-scrolling: touch; /* iOSの滑らかスクロール */
+            background: #fff;
         }
 
         #site-frame {
-            width: 100%; height: 100%; border: none; display: none;
+            /* iOSの幅バグを回避しつつ、Android/PCで100%表示するマジック */
+            width: 100%; min-width: 100%;
+            height: 100%; border: none; display: none;
         }
 
         .loader {
-            position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+            position: fixed; inset: 0; background: #fff;
             display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 3000;
         }
-        .spinner { width: 40px; height: 40px; border: 4px solid #eee; border-top-color: var(--line-green); border-radius: 50%; animation: spin 1s linear infinite; }
+        .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: var(--line-green); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
@@ -70,26 +85,33 @@
 
 <header id="config-panel">
     <div class="form-content">
-        <div style="text-align:center; font-weight:800; color:var(--line-green); margin-bottom:5px;">LINE Seed JP Viewer</div>
-        <input type="url" id="target-url" placeholder="https://www.wikipedia.org" value="">
-        <select id="font-weight">
-            <option value="100">極細 (Thin)</option>
-            <option value="400" selected>標準 (Regular)</option>
-            <option value="700">太め (Bold)</option>
-            <option value="800">超極太 (Black)</option>
-        </select>
-        <button class="btn-apply" onclick="applyAndLaunch()">フォントを適用して表示</button>
+        <div class="input-group">
+            <label>サイトのURL</label>
+            <input type="url" id="target-url" placeholder="example.com" inputmode="url">
+        </div>
+        <div class="input-group">
+            <label>文字の太さ</label>
+            <select id="font-weight">
+                <option value="100">極細 (Thin)</option>
+                <option value="400" selected>標準 (Regular)</option>
+                <option value="700">太め (Bold)</option>
+                <option value="800">超極太 (Black)</option>
+            </select>
+        </div>
+        <button class="btn-apply" onclick="applyAndLaunch()">サイトを表示</button>
     </div>
 </header>
 
-<button id="btn-reopen" onclick="togglePanel()">⚙</button>
+<button id="btn-reopen" style="display:none;" onclick="togglePanel()">⚙</button>
 
 <div id="iframe-wrapper">
-    <iframe id="site-frame"></iframe>
-    <div id="welcome-msg" style="color:#aaa; text-align:center; margin-top:45vh;">URLを入力して開始してください</div>
+    <iframe id="site-frame" name="site-frame"></iframe>
+    <div id="welcome-msg" style="padding: 50vh 20px 0; text-align:center; color:#ccc; font-weight:700;">
+        URLを入力してフォントを試そう
+    </div>
 </div>
 
-<div id="loader" class="loader"><div class="spinner"></div><p>フォントを注入中...</p></div>
+<div id="loader" class="loader"><div class="spinner"></div><p style="font-size:12px; margin-top:10px; font-weight:700;">適用中...</p></div>
 
 <script>
     const panel = document.getElementById('config-panel');
@@ -119,31 +141,32 @@
             let html = data.contents;
             const baseUrl = new URL(fullUrl).origin;
 
-            // --- 究極のレスポンシブ・ハック ---
-            // 既存のViewportを根こそぎ削除
+            // --- 全デバイス共通：レスポンシブ強制インジェクション ---
+            
+            // 1. 既存のviewport、charset、各種設定をクリア
             html = html.replace(/<meta[^>]*name=["']viewport["'][^>]*>/gi, '');
             
-            // 強力なメタタグとフォントCSSを<head>の直後に埋め込む
+            // 2. モバイルファーストのメタ情報を注入
             const injection = `
                 <base href="${baseUrl}/">
+                <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
                 <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@${weight}&display=swap" rel="stylesheet">
                 <style>
-                    /* フォント強制 */
-                    html, body, * {
+                    * {
                         font-family: 'LINE Seed JP', sans-serif !important;
                         font-weight: ${weight} !important;
                     }
-                    /* スマホ表示を強制するためのスタイル */
                     html {
                         width: 100% !important;
+                        -webkit-text-size-adjust: 100% !important; /* iOS/Androidでのフォント拡大バグ防止 */
                         overflow-x: hidden !important;
-                        -webkit-text-size-adjust: 100% !important;
                     }
                     body {
                         width: 100% !important;
                         margin: 0 !important;
-                        position: relative !important;
+                        padding: 0 !important;
+                        overflow-x: hidden !important;
                     }
                     img { max-width: 100% !important; height: auto !important; }
                 </style>
@@ -155,20 +178,20 @@
                 html = injection + html;
             }
 
-            // iframeに流し込む
+            // 3. 表示反映
             document.getElementById('welcome-msg').style.display = 'none';
             frame.style.display = 'block';
             frame.srcdoc = html;
 
-            // --- 出力後に自動的に閉じる ---
+            // 4. パネルの自動格納（遅延を入れて確実に実行）
             setTimeout(() => {
                 panel.classList.add('panel-closed');
-                openBtn.style.display = 'block';
+                openBtn.style.display = 'flex';
                 loader.style.display = 'none';
-            }, 800);
+            }, 700);
 
         } catch (e) {
-            alert('サイトの取得に失敗しました。');
+            alert('サイトを読み込めませんでした。別のURLを試してください。');
             loader.style.display = 'none';
         }
     }
