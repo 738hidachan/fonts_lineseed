@@ -3,39 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LINE Seed JP Universal Viewer</title>
+    <title>LINE Seed JP - Final Responsive</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@100;400;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root { --line-green: #06C755; }
-        
-        /* 共通設定 */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: 'LINE Seed JP', sans-serif;
             background-color: #000; overflow: hidden;
-            position: fixed; /* iOS/Androidでのバウンス抑制 */
+            position: fixed; /* iOSのバウンス防止 */
         }
 
-        /* --- 自動格納パネル --- */
+        /* --- 設定パネル --- */
         #config-panel {
             position: fixed; top: 0; left: 0; width: 100%;
             background: #fff; padding: env(safe-area-inset-top) 20px 24px 20px;
             z-index: 2000;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            will-change: transform;
         }
 
         .panel-closed { transform: translateY(-100%); }
 
         .form-content { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-        
-        label { font-size: 11px; font-weight: 800; color: var(--line-green); text-transform: uppercase; }
+        label { font-size: 11px; font-weight: 800; color: var(--line-green); }
 
         input[type="url"], select {
             width: 100%; padding: 14px; border: 2px solid #f0f0f0; border-radius: 12px;
@@ -46,31 +42,35 @@
         .btn-apply {
             padding: 16px; background: var(--line-green); color: white;
             border: none; border-radius: 12px; font-weight: 800; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(6,199,85,0.3); font-size: 16px;
+            box-shadow: 0 4px 15px rgba(6,199,85,0.3);
         }
 
-        /* --- 復帰用フローティングボタン --- */
         #btn-reopen {
             position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px;
             background: var(--line-green); border-radius: 50%; color: white;
             border: none; z-index: 1000; display: none; cursor: pointer;
             box-shadow: 0 5px 20px rgba(0,0,0,0.3); font-size: 24px;
-            display: flex; align-items: center; justify-content: center;
+            justify-content: center; align-items: center;
         }
 
-        /* --- 究極の全デバイス対応コンテナ --- */
+        /* --- 【最重要】iOS Safari レスポンシブ修正 --- */
         #iframe-wrapper {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            width: 100vw; height: 100vh;
-            overflow: auto; 
-            -webkit-overflow-scrolling: touch; /* iOSの滑らかスクロール */
+            width: 100%; height: 100%;
+            /* iOSでiframeを強制的にスクロールさせるための設定 */
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; 
             background: #fff;
         }
 
         #site-frame {
-            /* iOSの幅バグを回避しつつ、Android/PCで100%表示するマジック */
-            width: 100%; min-width: 100%;
-            height: 100%; border: none; display: none;
+            /* iOSの膨張バグを殺すための3点セット */
+            width: 1px;
+            min-width: 100%;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
         }
 
         .loader {
@@ -102,12 +102,12 @@
     </div>
 </header>
 
-<button id="btn-reopen" style="display:none;" onclick="togglePanel()">⚙</button>
+<button id="btn-reopen" onclick="togglePanel()">⚙</button>
 
 <div id="iframe-wrapper">
-    <iframe id="site-frame" name="site-frame"></iframe>
+    <iframe id="site-frame"></iframe>
     <div id="welcome-msg" style="padding: 50vh 20px 0; text-align:center; color:#ccc; font-weight:700;">
-        URLを入力してフォントを試そう
+        URLを入力してください
     </div>
 </div>
 
@@ -129,7 +129,6 @@
         const frame = document.getElementById('site-frame');
         
         if (!urlValue) return alert('URLを入力してください');
-        
         const fullUrl = urlValue.startsWith('http') ? urlValue : 'https://' + urlValue;
         loader.style.display = 'flex';
 
@@ -141,32 +140,26 @@
             let html = data.contents;
             const baseUrl = new URL(fullUrl).origin;
 
-            // --- 全デバイス共通：レスポンシブ強制インジェクション ---
-            
-            // 1. 既存のviewport、charset、各種設定をクリア
+            // 1. 既存のviewportタグを完全に除去
             html = html.replace(/<meta[^>]*name=["']viewport["'][^>]*>/gi, '');
             
-            // 2. モバイルファーストのメタ情報を注入
+            // 2. iOS Safariが「これはモバイルだ」と100%確信するメタタグとCSSを注入
             const injection = `
                 <base href="${baseUrl}/">
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@${weight}&display=swap" rel="stylesheet">
                 <style>
+                    /* フォントの強制 */
                     * {
                         font-family: 'LINE Seed JP', sans-serif !important;
                         font-weight: ${weight} !important;
                     }
-                    html {
-                        width: 100% !important;
-                        -webkit-text-size-adjust: 100% !important; /* iOS/Androidでのフォント拡大バグ防止 */
+                    /* iOSバグを封じ込めるCSS */
+                    html, body {
+                        width: 100vw !important;
                         overflow-x: hidden !important;
-                    }
-                    body {
-                        width: 100% !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        overflow-x: hidden !important;
+                        position: relative !important;
+                        -webkit-text-size-adjust: 100% !important;
                     }
                     img { max-width: 100% !important; height: auto !important; }
                 </style>
@@ -178,20 +171,18 @@
                 html = injection + html;
             }
 
-            // 3. 表示反映
             document.getElementById('welcome-msg').style.display = 'none';
             frame.style.display = 'block';
             frame.srcdoc = html;
 
-            // 4. パネルの自動格納（遅延を入れて確実に実行）
             setTimeout(() => {
                 panel.classList.add('panel-closed');
                 openBtn.style.display = 'flex';
                 loader.style.display = 'none';
-            }, 700);
+            }, 800);
 
         } catch (e) {
-            alert('サイトを読み込めませんでした。別のURLを試してください。');
+            alert('取得失敗');
             loader.style.display = 'none';
         }
     }
